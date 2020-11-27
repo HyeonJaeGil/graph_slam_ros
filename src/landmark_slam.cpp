@@ -25,6 +25,8 @@
 // GTSAM includes several nonlinear optimizers to perform this step. Here we will use the
 // a Gauss-Newton solver
 #include <gtsam/nonlinear/GaussNewtonOptimizer.h>
+#include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
+
 
 // Each variable in the system (poses and landmarks) must be identified with a unique key.
 // We can either use simple integer keys (1, 2, 3, ...) or symbols (X1, X2, L1).
@@ -182,17 +184,6 @@ private:
   }
 
 
-  void FlagCallBack(const std_msgs::Bool::ConstPtr &msg)
-  {
-    if (msg->data){
-
-      std::string filename = save_file_path_;
-      
-      //save graph to save file path;
-    }
-
-  }
-
   float QuatToYaw(double qx, double qy, double qz, double qw) 
   {
  
@@ -202,6 +193,15 @@ private:
     double yaw = std::atan2(siny_cosp, cosy_cosp);
 
     return yaw;
+  }
+
+  void FlagCallBack(const std_msgs::Bool::ConstPtr &msg){
+    if (msg->data){
+        initialEstimate.print("Initial Estimate:\n");
+        LevenbergMarquardtOptimizer optimizer(graph, initialEstimate);
+        Values result = optimizer.optimize();
+        result.print("Final Result:\n");
+    }
   }
 };
 
@@ -228,7 +228,7 @@ PlanerLandmarkSLAM::PlanerLandmarkSLAM() : nh() {
 
   odom_sub_   =  nh.subscribe(odom_sub_topic_, 10, &PlanerLandmarkSLAM::OdomCallBack, this);
   detect_sub_ =  nh.subscribe("detection_throttle", 10, &PlanerLandmarkSLAM::DetectionCallBack, this);
-  flag_sub_   =  nh.subscribe("optimize_flag", 10, &PlanerLandmarkSLAM::FlagCallBack, this);
+  flag_sub_   =  nh.subscribe("optimize_flag", 1, &PlanerLandmarkSLAM::FlagCallBack, this);
 
 
   ROS_INFO("Graph SLAM Node ready.");
